@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 const tempMovieData = [
   {
@@ -46,22 +46,57 @@ const tempWatchedData = [
     userRating: 9,
   },
 ];
-
+const KEY ='e890f7a8'
 const average = (arr) =>
   arr.reduce((acc, cur, i, arr) => acc + cur / arr.length, 0);
 
 export default function App() {
-    const [movies, setMovies] = useState(tempMovieData);
-    const [watched, setWatched] = useState(tempWatchedData);
+    const [query, setQuery] = useState("");
+    const [movies, setMovies] = useState([]);
+    const [watched, setWatched] = useState([]);
+    const [isLoading, setIsLoading]= useState(false)
+    const [error, setError] = useState('')
+    const tempQuery='Titanic'
+
+  useEffect(()=>{
+    async function fetchMovies(){
+    try{
+    setIsLoading(true)
+    setError('')
+    const res=await
+    fetch(`http://www.omdbapi.com/?apikey=${KEY}&s=${query}`
+    );
+
+    if(!res.ok)
+    throw new Error("Error fetching movies....")
+    const data= await res.json();
+    setMovies(data.Search)
+    console.log('The movies', data.Search)
+    } catch (err){
+        console.error(err.message)
+        setError(err.message)
+        
+    }finally{
+        setIsLoading(false)
+    }
+    }
+    fetchMovies()
+  }, [query])
+ 
+
+
   return (
     <>
        <NavBar>
-       <Search/>
+       <Search query={query} setQuery={setQuery}/>
        <NumResults movies={movies}/>
        </NavBar>
        <Main>
             <Box>
-                <MovieList movies ={movies}/>
+                {isLoading && <Loader/>}
+                {!isLoading&& !error &&
+                <MovieList movies ={movies}/>}
+                {error && <ErrorMessage message={error}/>}
             </Box>
             <Box>
                 <WatchedSummary watched ={watched}/>
@@ -71,8 +106,8 @@ export default function App() {
     </>
   );
 }
-function Search(){
-    const [query, setQuery] = useState("");
+function Search({query, setQuery}){
+  
    return(
     <input
           className="search"
@@ -250,5 +285,15 @@ function WatchedMovie({movie}){
         </p>
         </div>
     </li>
+    )
+}
+
+function Loader(){
+    return <p className="error">Loading....</p>
+}
+
+function ErrorMessage({message}){
+    return(
+        <p className="error"><span>⛔</span> {message}</p>
     )
 }
